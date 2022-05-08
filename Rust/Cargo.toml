@@ -1,0 +1,11 @@
+[package]
+name = "cryptle"
+version = "0.1.0"
+license = "Apache-2.0"
+edition = "2021"
+
+[dependencies]
+mini_http = {git = "https://github.com/haraldh/mini_http"}
+httparse = "1"
+http = "0.1"
+rand = "0.8.5"

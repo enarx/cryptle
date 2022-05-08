@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css" type="text/css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&display=swap" rel="stylesheet">
+  <script type="module" src="index.js"></script>
+  <title>Cryptle</title>
+</head>
+<body>
+  <header>
+    <div class="menu-left">
+      <div style="margin: 3px 2px 0 0; font-weight: 700;">1P</div>
+      <div><label class="switch">
+        <input type="checkbox" id="multiCheckbox">
+        <span class="slider round"></span>
+      </label></div>
+      <div style="margin: 3px 0 0 3px; font-weight: 700;">MP</div>
+      <button data-key="help"><svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path fill="black" d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"></path></svg></button>
+    </div>
+    <div class="title">Cryptle</div>
+    <div class="menu-right"><button data-key="stats"><svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+      <path fill="black" d="M16,11V3H8v6H2v12h20V11H16z M10,5h4v14h-4V5z M4,11h4v8H4V11z M20,19h-4v-6h4V19z"></path>
+    </svg></button></div>
+  </header>
+  <main id="container">
+    <div class="modal_help" style="display: none">
+      <div class="overlay"></div>
+      <div class="modal_content">
+        <h2>How to Play Cryptle</h2>
+        <h3>Single Player (1P)</h3>
+        <p><strong>Guess the five-letter word in six tries, just like Wordle:</strong></p>
+        <p>&#129000; Yellow means the letter is correct, but in the wrong spot.</p>
+        <p>&#129001; Green means the letter is correct and in the right spot.</p>
+        <h3>Multi Player (MP)</h3>
+        <p><strong>Guess the words suggested by other players:</strong></p>
+        <p>&#128998; Blue means the letter is in the right spot (for at least one word).</p>
+        <p>&#129002; Purple means you have guessed a word from another player.</p>
+        <p>&#128997; Red means this word was already guessed before (not valid).</p>
+        <h3>Hack Challenge</h3>
+        <p><strong>Guess the words by <em>hacking</em> the server as root:</strong></p>
+        <p>&#128274; Cryptle encrypts data in use: not even the OS has access to it.</p>
+        <p>&#x1F469;&#x200D;&#x1F4BB; <a href="#">Submit</a> an open source application to run with root privileges.</p>
+        <button title="Close" class="close_modal_help">✖</button>
+      </div>
+    </div>
+    <div class="modal_stats" style="display: none">
+      <div class="overlay"></div>
+      <div class="modal_content">
+        <h2>Multi Player Stats</h2>
+        <h3>Matched Words</h3>
+        <div id="cryptle-matches">&nbsp;</div>
+        <h3>Winners Ranking</h3>
+        <div id="cryptle-winners">&nbsp;</div>
+        <button title="Close" class="close_modal_stats">✖</button>
+      </div>
+    </div>
+    <div id="game">
+      <div id="board-container">
+        <div id="board"></div>
+      </div>
+      <div id="keyboard-container">
+        <div class="keyboard-row">
+          <button data-key="q">Q</button>
+          <button data-key="w">W</button>
+          <button data-key="e">E</button>
+          <button data-key="r">R</button>
+          <button data-key="t">T</button>
+          <button data-key="y">Y</button>
+          <button data-key="u">U</button>
+          <button data-key="i">I</button>
+          <button data-key="o">O</button>
+          <button data-key="p">P</button>
+        </div>
+        <div class="keyboard-row">
+          <div class="spacer-half"></div>
+          <button data-key="a">A</button>
+          <button data-key="s">S</button>
+          <button data-key="d">D</button>
+          <button data-key="f">F</button>
+          <button data-key="g">G</button>
+          <button data-key="h">H</button>
+          <button data-key="j">J</button>
+          <button data-key="k">K</button>
+          <button data-key="l">L</button>
+          <div class="spacer-half"></div>
+        </div>
+        <div class="keyboard-row">
+          <button data-key="enter" class="wide-button">Enter</button>
+          <button data-key="z">Z</button>
+          <button data-key="x">X</button>
+          <button data-key="c">C</button>
+          <button data-key="v">V</button>
+          <button data-key="b">B</button>
+          <button data-key="n">N</button>
+          <button data-key="m">M</button>
+          <button data-key="del" class="wide-button">Del</button>
+        </div>
+      </div>
+    </div>
+  </main> 
+</body>
+</html>

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Twitter handle
+  // Twitter handle, required for multi player
   let twitter = "";
 
   // Draw empty board
@@ -67,6 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleStats() {
     toggleStatsModal();
 
+    // Created on matches call, used on the winners call
+    let matchesArr = Array();
+
     fetch("./matches", {
       "method": "GET",
     })
@@ -80,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (matches == "") {
           matches = "None";
+        } else {
+          const matchesString = matches.replaceAll(", ",",");
+          matchesArr = matchesString.split(",");
         }
 
         const statsEl = document.getElementById('cryptle-matches');
@@ -106,12 +112,34 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           const winnersString = winners.replaceAll(", ",",");
           const winnersArr = winnersString.split(",");
+
+          // Each winner and their corresponding matches
+          let winnersMatches = {};
+          let mK = 0;
+          for(var wKey in winnersArr) {
+            let winner = winnersArr[wKey];
+            // Rounds mKey down, updating it every two iterations
+            // That's because each match has two winners
+            let mKey = Math.floor(mK/2);
+            // Concatenate matches for each winner
+            if (winner in winnersMatches) {
+              winnersMatches[winner] = winnersMatches[winner] + ", " + matchesArr[mKey];
+            } else {
+              winnersMatches[winner] = matchesArr[mKey];
+            }
+            mK++;       
+          }
+
+          // Find number of matches for each winner
           const winnersMap = winnersArr.reduce((acc, e) => acc.set(e, (acc.get(e) || 0) + 1), new Map());
+          // Sort by number of matches
           const winnersSorted = new Map([...winnersMap.entries()].sort((a, b) => b[1] - a[1]));
 
+          // Build rank of winners
           winners = "<ul>";
           for (let [key, value] of winnersSorted) {
-            winners += `<li>${key} (${value} points)</li>`;
+            let matches = winnersMatches[key];
+            winners += `<li>${key} (${value} points): ${matches}</li>`;
           }
           winners += "</ul>";
         }
@@ -167,17 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function getTileColor(color){
     switch(color) {
       case "y":
-        return "#ffff99";
+        return "#ffff99"; // yellow
       case "g":
-        return "#6aaa64";      
+        return "#6aaa64"; // green
       case "b":
-        return "#85c0f9";
+        return "#85c0f9"; // blue
       case "p":
-        return "#cc99cc";
+        return "#cc99cc"; // purple
       case "r":
-          return "#ff7070";
+          return "#ff7070"; // red
       default:
-          return "#d3d3d3"
+          return "#d3d3d3" // gray
     }
   };
 

@@ -45,7 +45,7 @@ fn check_single(query: Option<&str>, the_word: String) -> Vec<u8> {
         let the_guess = the_params_parts.0;
         let the_guess_parts = the_guess.split_once("=").unwrap();
         let guess = the_guess_parts.1;
-        println!("The guess: {}", guess);
+        //println!("The guess: {}", guess);
 
         let guess_size:usize = guess.len() as usize;
         if guess_size == 5 {
@@ -84,10 +84,10 @@ fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: 
         let the_player = the_params_parts.1;
         let the_guess_parts = the_guess.split_once("=").unwrap();
         let guess = the_guess_parts.1;
-        println!("The guess: {}", guess);
+        //println!("The guess: {}", guess);
         let the_player_parts = the_player.split_once("=").unwrap();
         let player = the_player_parts.1;
-        println!("The player: {}", player);
+        //println!("The player: {}", player);
 
         // Wrong word size
         let word_size:usize = guess.len() as usize;
@@ -127,17 +127,17 @@ fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: 
             // Push word to matches
             matches.borrow_mut().push(guess.to_string());
             response = vec![b'p'; 5];
-            println!("New match: {}", guess.to_string());
+            //println!("New match: {}", guess.to_string());
 
             // Push winners
             winners.borrow_mut().push(player.to_string());
             winners.borrow_mut().push(winner.to_string());
-            println!("Winners: {}, {}", player.to_string(), winner.to_string());
+            //println!("Winners: {}, {}", player.to_string(), winner.to_string());
         } else {
             // Push new word to guesses
             guesses.borrow_mut().push(guess.to_string());
             players.borrow_mut().push(player.to_string());
-            println!("New word: {}", guess.to_string());
+            //println!("New word: {}", guess.to_string());
         }
         
     }

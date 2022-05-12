@@ -207,7 +207,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let the_word_copy: &'static str = the_word_static.clone();
     let the_word_string = the_word_copy.to_lowercase();
 
-    println!("The word: {}", the_word_string);
+    //println!("The word: {}", the_word_string);
 
 
     // Vectors for multi-player mode

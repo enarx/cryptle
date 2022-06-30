@@ -29,6 +29,74 @@ const NOT_FOUND: &str = r#"
 </body></html>
 "#;
 
+struct GameState {
+    matches: Vec<String>,
+    letters: Vec<String>, 
+    players: Vec<String>,
+    winners: Vec<String>,
+}
+
+impl GameState {
+    fn new() -> GameState {
+        GameState { //constructor
+            matches: Vec::new(),   //compiler will already know what type of vector it is
+            letters: Vec::new(),
+            players: Vec::new(),
+            winners: Vec::new()
+        }
+    }
+
+    fn check_guess_match(&self, guess: &str) -> bool {
+        self.matches.iter().position(|x| x == guess).is_some()
+    }  
+ 
+    fn check_guess_partial(&mut self, guess: &str) -> Vec<u8> {
+        let mut response = vec![b'c'; 5];
+       // Check letters
+        for letter_index in 0..word_size {
+        let letter_char = guess.as_bytes()[letter_index] as char;
+        let found_char = self.letters[letter_index].chars().any(|ch| ch == letter_char);
+        if found_char {
+            response[letter_index] = b'b';
+        } else {
+            self.letters()[letter_index].push_str(&letter_char.to_string());
+        }
+    }
+
+    // Check if this word is a new match
+    let guesses_index = self.guesses.iter().position(|x| x == guess);
+    if guesses_index.is_some()  {
+       
+        // Check if it matches a previous guess from the player
+        let winner = &players.()[guesses_index.unwrap()];
+        if winner == player {
+        response = vec![b'r'; 5];
+            return response;
+        }
+           
+        // Push word to matches
+        self.matches.push(guess.to_string());
+        response = vec![b'p'; 5];
+        //println!("New match: {}", guess.to_string());
+
+        // Push winners
+        self.winners.push(player.to_string());
+        self.winners.push(winner.to_string());
+        //println!("Winners: {}, {}", player.to_string(), winner.to_string());
+           } 
+           
+        else {
+            // Push new word to guesses
+            self.guesses.push(guess.to_string());
+            self.players.push(player.to_string());
+            //println!("New word: {}", guess.to_string());
+            }
+
+       response
+    }
+
+}
+
 // Single-player mode
 //
 // Color scheme:
@@ -106,6 +174,10 @@ fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: 
            }
         };
 
+        
+    
+
+
         // let guess = the_guess_parts.1;
         //println!("The guess: {}", guess);
        
@@ -113,7 +185,7 @@ fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: 
         //println!("The player: {}", player);
 
         // Wrong word size
-        let word_size:usize = guess.len() as usize;
+        let word_size = guess.len() as usize;
         if word_size != 5 {
            return response;
         }

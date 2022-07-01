@@ -286,3 +286,40 @@ pub fn main() {
         eprintln!("Error: {:?}", e);
     }
 }
+
+
+#[cfg(test)] // anything underthis is only used when we are testing
+mod tests {
+    //Test driven development
+    use super::*;
+
+    #[test]
+    fn test_single_correct() {
+        let result = check_single(Some("&guess=thing"), "thing".to_string());
+        assert_eq!(result, vec![b'g', b'g', b'g' ,b'g', b'g']);
+    }
+
+    #[test]
+    fn test_single_correct_letter() {
+        let result = check_single(Some("&guess=cloud"), "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'y' ,b'y', b'g']);
+    }
+
+    #[test] 
+    fn test_single_incorrect() {
+        let result = check_single(Some("&guess=tests"), "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'c' ,b'c', b'c']);
+    }
+
+    #[test]
+    fn test_single_too_long() {
+        let result = check_single(Some("&guess=laptop"), "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'c' ,b'c', b'c']);
+    }
+
+    #[test]
+    fn test_single_none() {
+        let result = check_single(None, "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'c' ,b'c', b'c']);
+    }
+}

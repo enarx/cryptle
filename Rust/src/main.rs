@@ -40,11 +40,21 @@ fn check_single(query: Option<&str>, the_word: String) -> Vec<u8> {
 
     // Get guess parameter
     if query.is_some() {
+
+
         let the_params = query.unwrap();
+        
         let the_params_parts = the_params.split_once("&").unwrap();
-        let the_guess = the_params_parts.0;
+        let the_guess = the_params_parts.1;
+        
         let the_guess_parts = the_guess.split_once("=").unwrap();
         let guess = the_guess_parts.1;
+
+        if the_guess_parts.0 != "guess" { 
+            eprintln!("Unexpected Parameter {}",the_guess_parts.0 );  //for the comparison
+            return response;
+        }
+
         //println!("The guess: {}", guess);
 
         let guess_size:usize = guess.len() as usize;
@@ -82,11 +92,26 @@ fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: 
         let the_params_parts = the_params.split_once("&").unwrap();
         let the_guess = the_params_parts.0;
         let the_player = the_params_parts.1;
+
         let the_guess_parts = the_guess.split_once("=").unwrap();
-        let guess = the_guess_parts.1;
+
+        let the_player_parts = the_player.split_once("=").unwrap(); // for checking together
+        let guess_label = the_guess_parts.0;  // for guessing 
+        let player_label = the_player_parts.0; // for checking index
+        let (guess, player) = match (guess_label, player_label) {  //switch statement
+           ("guess", "player") =>  (the_guess_parts.1, the_player_parts.1), 
+           ("player", "guess") => (the_player_parts.1, the_guess_parts.1 ),
+
+           (x,y) => {
+            eprintln!("Unexpected parameters: {}, {}", x,y);
+               return response;
+           }
+        };
+
+        // let guess = the_guess_parts.1;
         //println!("The guess: {}", guess);
-        let the_player_parts = the_player.split_once("=").unwrap();
-        let player = the_player_parts.1;
+       
+        // let player = the_player_parts.1;
         //println!("The player: {}", player);
 
         // Wrong word size
@@ -274,5 +299,41 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 pub fn main() {
     if let Err(e) = run() {
         eprintln!("Error: {:?}", e);
+    }
+}
+
+#[cfg(test)] // anything underthis is only used when we are testing
+mod tests {
+    //Test driven development
+    use super::*;
+
+    #[test]
+    fn test_single_correct() {
+        let result = check_single(Some("&guess=thing"), "thing".to_string());
+        assert_eq!(result, vec![b'g', b'g', b'g' ,b'g', b'g']);
+    }
+
+    #[test]
+    fn test_single_correct_letter() {
+        let result = check_single(Some("&guess=cloud"), "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'y' ,b'y', b'g']);
+    }
+
+    #[test] 
+    fn test_single_incorrect() {
+        let result = check_single(Some("&guess=tests"), "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'c' ,b'c', b'c']);
+    }
+
+    #[test]
+    fn test_single_too_long() {
+        let result = check_single(Some("&guess=laptop"), "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'c' ,b'c', b'c']);
+    }
+
+    #[test]
+    fn test_single_none() {
+        let result = check_single(None, "round".to_string());
+        assert_eq!(result, vec![b'c', b'c', b'c' ,b'c', b'c']);
     }
 }

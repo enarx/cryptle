@@ -40,11 +40,21 @@ fn check_single(query: Option<&str>, the_word: String) -> Vec<u8> {
 
     // Get guess parameter
     if query.is_some() {
+
+
         let the_params = query.unwrap();
+        
         let the_params_parts = the_params.split_once("&").unwrap();
-        let the_guess = the_params_parts.0;
+        let the_guess = the_params_parts.1;
+        
         let the_guess_parts = the_guess.split_once("=").unwrap();
         let guess = the_guess_parts.1;
+
+        if the_guess_parts.0 != "guess" { 
+            eprintln!("Unexpected Parameter {}",the_guess_parts.0 );  //for the comparison
+            return response;
+        }
+
         //println!("The guess: {}", guess);
 
         let guess_size:usize = guess.len() as usize;

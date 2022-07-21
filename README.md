@@ -8,3 +8,28 @@ Cryptle is similar to Wordle but one important difference is that it is multi-pa
 
 The standard way to engage with the game is for players to guess the secret words by playing Cryptle from the client side. However, we will also be allowing an alternative: players may write an application which runs on the host side and attempts to derive or otherwise guess the secret words. The mechanism chosen is up to the implementer, but the application must be available as open source (under an OSI license) in a public repository in GitHub or GitLab. It may be written in any programming language, but should not be intentionally obfuscated. The application may run with root privileges. Documentation should be provided to show how the application is able to “guess” or derive the secret words. The host will be running a modern Linux kernel and applications will be run as ELF binaries. No physical access to the host will be allowed or provided.
 
+# Trying it out
+
+## wasmtime
+
+```console
+CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime run --tcplisten 127.0.0.1:8443 --env FD_COUNT=1"  cargo +nightly run --target wasm32-wasi
+```
+
+Server is running on [`http://127.0.0.1:8443`](http://127.0.0.1:8443).
+
+## enarx
+
+after installing enarx in `$PATH` with `cargo install`
+
+```console
+CARGO_TARGET_WASM32_WASI_RUNNER="enarx run --wasmcfgfile ../Enarx.toml"  cargo +nightly run --target wasm32-wasi
+```
+
+or simply with the help of `.cargo/config`:
+
+```console
+cargo +nightly run
+```
+
+Server is running on [`https://127.0.0.1:8443`](https://127.0.0.1:8443).

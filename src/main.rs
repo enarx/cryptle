@@ -8,15 +8,15 @@ use rand::Rng;
 // https://github.com/haraldh
 
 fn index_page() -> &'static [u8] {
-    include_bytes!("../../client/index.html")
+    include_bytes!("../client/index.html")
 }
 
 fn index_js() -> &'static [u8] {
-    include_bytes!("../../client/index.js")
+    include_bytes!("../client/index.js")
 }
 
 fn style_css() -> &'static [u8] {
-    include_bytes!("../../client/styles.css")
+    include_bytes!("../client/styles.css")
 }
 
 const NOT_FOUND: &str = r#"
@@ -194,7 +194,7 @@ fn get_server() -> Server {
 fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate random number from word list
-    const WORDLIST: &str = include_str!("../../client/wordList.txt");
+    const WORDLIST: &str = include_str!("../client/wordList.txt");
 
     let mut rng = rand::thread_rng();
     let mut random_index: usize = rng.gen_range(0..WORDLIST.len()/6);

@@ -1,0 +1,22 @@
+name: Build
+on: [ push, pull_request ]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - uses: cachix/install-nix-action@v17
+    - uses: cachix/cachix-action@v10
+      with:
+        name: enarx
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - name: Build Cryptle Enarx package
+      run: nix build -L '.#cryptle-enarx'
+    - run: nix run --inputs-from . 'nixpkgs#coreutils' -- --coreutils-prog=ginstall -p ./result/main.wasm cryptle.wasm
+    - uses: actions/upload-artifact@v3
+      with:
+        name: cryptle.wasm
+        path: cryptle.wasm

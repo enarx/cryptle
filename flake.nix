@@ -51,7 +51,10 @@
     };
   in
     with flake-utils.lib.system;
-      flake-utils.lib.eachSystem [
+      {
+        overlays.default = overlay;
+      }
+      // flake-utils.lib.eachSystem [
         aarch64-darwin
         aarch64-linux
         x86_64-darwin

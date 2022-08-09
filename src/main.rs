@@ -188,7 +188,7 @@ fn get_server() -> Server {
 
 #[cfg(not(target_os = "wasi"))]
 fn get_server() -> Server {
-    mini_http::Server::new("127.0.0.1:8443").unwrap()
+    mini_http::Server::new("127.0.0.1:10030").unwrap()
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {

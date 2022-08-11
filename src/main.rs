@@ -1,8 +1,10 @@
+mod game_state;
+
+use game_state::GameState;
 use mini_http;
 use mini_http::Server;
-use std::cell::RefCell; 
-use std::rc::Rc;
 use rand::Rng;
+use std::rc::Rc;
 
 // All the web server and network code by Harald H.
 // https://github.com/haraldh
@@ -35,7 +37,7 @@ const NOT_FOUND: &str = r#"
 // y (yellow): right letter, wrong position
 // g (green): letter at the right position
 
-fn check_single(query: Option<&str>, the_word: String) -> Vec<u8> {
+fn check_single(query: Option<&str>, state: Rc<GameState>) -> Vec<u8> {
     let mut response = vec![b'c'; 5];
 
     // Get guess parameter
@@ -47,14 +49,16 @@ fn check_single(query: Option<&str>, the_word: String) -> Vec<u8> {
         let guess = the_guess_parts.1;
         //println!("The guess: {}", guess);
 
-        let guess_size:usize = guess.len() as usize;
+        let guess_size: usize = guess.len() as usize;
         if guess_size == 5 {
             for letter_index in 0..guess_size {
-                if guess.as_bytes()[letter_index] == the_word.as_bytes()[letter_index] {
+                if guess.as_bytes()[letter_index] == state.word.as_bytes()[letter_index] {
                     response[letter_index] = b'g';
                 } else {
-                    for letter_byte in the_word.as_bytes() {
-                        if guess.as_bytes()[letter_index].eq(letter_byte) && response[letter_index] == b'c' {
+                    for letter_byte in state.word.as_bytes() {
+                        if guess.as_bytes()[letter_index].eq(letter_byte)
+                            && response[letter_index] == b'c'
+                        {
                             response[letter_index] = b'y';
                         }
                     }
@@ -73,7 +77,7 @@ fn check_single(query: Option<&str>, the_word: String) -> Vec<u8> {
 // p (purple): word match
 // r (red): word was already a match
 
-fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: Rc<RefCell<Vec<String>>>, letters: Rc<RefCell<Vec<String>>>, players: Rc<RefCell<Vec<String>>>, winners: Rc<RefCell<Vec<String>>>) -> Vec<u8> {
+fn check_multi(query: Option<&str>, state: Rc<GameState>) -> Vec<u8> {
     let mut response = vec![b'c'; 5];
 
     // Get guess and player parameters
@@ -90,13 +94,13 @@ fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: 
         //println!("The player: {}", player);
 
         // Wrong word size
-        let word_size:usize = guess.len() as usize;
+        let word_size: usize = guess.len() as usize;
         if word_size != 5 {
-           return response;
+            return response;
         }
 
         // Check if this word was already a match
-        let matches_index = matches.borrow_mut().iter().position(|x| x == guess);
+        let matches_index = state.matches.borrow().iter().position(|x| x == guess);
         if matches_index.is_some() {
             response = vec![b'r'; 5];
             return response;
@@ -105,53 +109,53 @@ fn check_multi(query: Option<&str>, guesses: Rc<RefCell<Vec<String>>>, matches: 
         // Check letters
         for letter_index in 0..word_size {
             let letter_char = guess.as_bytes()[letter_index] as char;
-            let found_char = letters.borrow_mut()[letter_index].chars().any(|ch| ch == letter_char);
+            let found_char = state.letters.borrow()[letter_index]
+                .chars()
+                .any(|ch| ch == letter_char);
             if found_char {
                 response[letter_index] = b'b';
             } else {
-                letters.borrow_mut()[letter_index].push_str(&letter_char.to_string());
+                state.letters.borrow_mut()[letter_index].push_str(&letter_char.to_string());
             }
         }
 
         // Check if this word is a new match
-        let guesses_index = guesses.borrow_mut().iter().position(|x| x == guess);
+        let guesses_index = state.guesses.borrow().iter().position(|x| x == guess);
         if guesses_index.is_some() {
-            
             // Check if it matches a previous guess from the player
-            let winner = &players.borrow_mut()[guesses_index.unwrap()];
+            let winner = &state.players.borrow()[guesses_index.unwrap()];
             if winner == player {
                 response = vec![b'r'; 5];
                 return response;
             }
-            
+
             // Push word to matches
-            matches.borrow_mut().push(guess.to_string());
+            state.matches.borrow_mut().push(guess.to_string());
             response = vec![b'p'; 5];
             //println!("New match: {}", guess.to_string());
 
             // Push winners
-            winners.borrow_mut().push(player.to_string());
-            winners.borrow_mut().push(winner.to_string());
+            state.winners.borrow_mut().push(player.to_string());
+            state.winners.borrow_mut().push(winner.to_string());
             //println!("Winners: {}, {}", player.to_string(), winner.to_string());
         } else {
             // Push new word to guesses
-            guesses.borrow_mut().push(guess.to_string());
-            players.borrow_mut().push(player.to_string());
+            state.guesses.borrow_mut().push(guess.to_string());
+            state.players.borrow_mut().push(player.to_string());
             //println!("New word: {}", guess.to_string());
         }
-        
     }
 
     return response;
 }
 
-fn check_winners(winners: Rc<RefCell<Vec<String>>>) -> Vec<u8> {
+fn check_winners(state: Rc<GameState>) -> Vec<u8> {
     let mut response = String::from("");
     let comma = String::from(", ");
-    let winners_size:usize = winners.borrow_mut().len() as usize;
+    let winners_size: usize = state.winners.borrow().len() as usize;
 
     for winners_index in 0..winners_size {
-        let winner = &winners.borrow_mut()[winners_index];
+        let winner = &state.winners.borrow()[winners_index];
         if response == "" {
             response = winner.to_string();
         } else {
@@ -162,13 +166,13 @@ fn check_winners(winners: Rc<RefCell<Vec<String>>>) -> Vec<u8> {
     return response.as_bytes().to_vec();
 }
 
-fn check_matches(matches: Rc<RefCell<Vec<String>>>) -> Vec<u8> {
+fn check_matches(state: Rc<GameState>) -> Vec<u8> {
     let mut response = String::from("");
     let comma = String::from(", ");
-    let matches_size:usize = matches.borrow_mut().len() as usize;
+    let matches_size = state.matches.borrow().len();
 
     for matches_index in 0..matches_size {
-        let matched = &matches.borrow_mut()[matches_index];
+        let matched = &state.matches.borrow()[matches_index];
         if response == "" {
             response = matched.to_string();
         } else {
@@ -178,8 +182,6 @@ fn check_matches(matches: Rc<RefCell<Vec<String>>>) -> Vec<u8> {
 
     return response.as_bytes().to_vec();
 }
-
-
 
 #[cfg(target_os = "wasi")]
 fn get_server() -> Server {
@@ -192,37 +194,24 @@ fn get_server() -> Server {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-
     // Generate random number from word list
     const WORDLIST: &str = include_str!("../client/wordList.txt");
 
     let mut rng = rand::thread_rng();
-    let mut random_index: usize = rng.gen_range(0..WORDLIST.len()/6);
+    let mut random_index: usize = rng.gen_range(0..WORDLIST.len() / 6);
 
-    while WORDLIST.as_bytes()[random_index] != 0x0A { // check for newline
+    while WORDLIST.as_bytes()[random_index] != 0x0A {
+        // check for newline
         random_index += 1;
     }
     random_index += 1;
-    let the_word_static = &WORDLIST[random_index..random_index+5];
+    let the_word_static = &WORDLIST[random_index..random_index + 5];
     let the_word_copy: &'static str = the_word_static.clone();
     let the_word_string = the_word_copy.to_lowercase();
 
-    //println!("The word: {}", the_word_string);
+    // ("The word: {}", the_word_string);
 
-
-    // Vectors for multi-player mode
-    let guesses = Rc::new(RefCell::new(Vec::<String>::new()));
-    let matches = Rc::new(RefCell::new(Vec::<String>::new()));
-    let players = Rc::new(RefCell::new(Vec::<String>::new()));
-    let winners = Rc::new(RefCell::new(Vec::<String>::new()));
-
-    // Letters vector with 5 elements [a..z, a..z, a..z, a..z, a..z]
-    let letters = Rc::new(RefCell::new(Vec::<String>::new()));
-    letters.borrow_mut().push("".to_string());
-    letters.borrow_mut().push("".to_string());
-    letters.borrow_mut().push("".to_string());
-    letters.borrow_mut().push("".to_string());
-    letters.borrow_mut().push("".to_string());
+    let state: Rc<GameState> = Rc::new(GameState::from(the_word_string));
 
     // Run server
     get_server()
@@ -241,22 +230,22 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "/single" => mini_http::Response::builder()
                 .status(200)
                 .header("Content-Type", "text/plain")
-                .body(check_single(req.uri().query(), the_word_string.clone()))
+                .body(check_single(req.uri().query(), state.clone()))
                 .unwrap(),
             "/multi" => mini_http::Response::builder()
                 .status(200)
                 .header("Content-Type", "text/plain")
-                .body(check_multi(req.uri().query(), guesses.clone(), matches.clone(), letters.clone(), players.clone(), winners.clone()))
+                .body(check_multi(req.uri().query(), state.clone()))
                 .unwrap(),
             "/winners" => mini_http::Response::builder()
                 .status(200)
                 .header("Content-Type", "text/plain")
-                .body(check_winners(winners.clone()))
+                .body(check_winners(state.clone()))
                 .unwrap(),
             "/matches" => mini_http::Response::builder()
                 .status(200)
                 .header("Content-Type", "text/plain")
-                .body(check_matches(matches.clone()))
+                .body(check_matches(state.clone()))
                 .unwrap(),
             "/" => mini_http::Response::builder()
                 .status(200)

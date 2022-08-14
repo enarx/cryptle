@@ -2,9 +2,11 @@ mod game_state;
 
 use game_state::GameState;
 use mini_http;
-use mini_http::Server;
+use mini_http::{Request, Server};
 use rand::Rng;
+use std::collections::HashMap;
 use std::rc::Rc;
+use url::{ParseError, Url};
 
 // All the web server and network code by Harald H.
 // https://github.com/haraldh
@@ -31,40 +33,49 @@ const NOT_FOUND: &str = r#"
 </body></html>
 "#;
 
+fn get_url(req: &Request) -> Result<Url, ParseError> {
+    let k = req.headers();
+    if let Some(base) = k.get("host") {
+        let base_url: String = base.to_str().unwrap_or("http://localhost:10030").into();
+        let url = format!("{}{}", base_url, req.uri().to_string());
+        Url::parse(&*url)
+    } else {
+        Err(ParseError::EmptyHost)
+    }
+}
+
 // Single-player mode
 //
 // Color scheme:
 // y (yellow): right letter, wrong position
 // g (green): letter at the right position
 
-fn check_single(query: Option<&str>, state: Rc<GameState>) -> Vec<u8> {
+fn check_single(req: &Request, state: Rc<GameState>) -> Vec<u8> {
     let mut response = vec![b'c'; 5];
+    let url = get_url(&req);
 
     // Get guess parameter
-    if query.is_some() {
-        let the_params = query.unwrap();
-        let the_params_parts = the_params.split_once("&").unwrap();
-        let the_guess = the_params_parts.0;
-        let the_guess_parts = the_guess.split_once("=").unwrap();
-        let guess = the_guess_parts.1;
-        //println!("The guess: {}", guess);
-
-        let guess_size: usize = guess.len() as usize;
-        if guess_size == 5 {
-            for letter_index in 0..guess_size {
-                if guess.as_bytes()[letter_index] == state.word.as_bytes()[letter_index] {
-                    response[letter_index] = b'g';
-                } else {
-                    for letter_byte in state.word.as_bytes() {
-                        if guess.as_bytes()[letter_index].eq(letter_byte)
-                            && response[letter_index] == b'c'
-                        {
-                            response[letter_index] = b'y';
+    if let Ok(url) = url {
+        let query: HashMap<String, String> = url.query_pairs().into_owned().collect();
+        if let Some(guess) = query.get("guess") {
+            let guess_size: usize = guess.len();
+            if guess_size == 5 {
+                for letter_index in 0..guess_size {
+                    if guess.as_bytes()[letter_index] == state.word.as_bytes()[letter_index] {
+                        response[letter_index] = b'g';
+                    } else {
+                        for letter_byte in state.word.as_bytes() {
+                            if guess.as_bytes()[letter_index].eq(letter_byte)
+                                && response[letter_index] == b'c'
+                            {
+                                response[letter_index] = b'y';
+                            }
                         }
                     }
                 }
             }
         }
+        //println!("The guess: {}", guess);
     }
 
     return response;
@@ -77,72 +88,64 @@ fn check_single(query: Option<&str>, state: Rc<GameState>) -> Vec<u8> {
 // p (purple): word match
 // r (red): word was already a match
 
-fn check_multi(query: Option<&str>, state: Rc<GameState>) -> Vec<u8> {
+fn check_multi(req: &Request, state: Rc<GameState>) -> Vec<u8> {
     let mut response = vec![b'c'; 5];
-
+    let url = get_url(&req);
     // Get guess and player parameters
-    if query.is_some() {
-        let the_params = query.unwrap();
-        let the_params_parts = the_params.split_once("&").unwrap();
-        let the_guess = the_params_parts.0;
-        let the_player = the_params_parts.1;
-        let the_guess_parts = the_guess.split_once("=").unwrap();
-        let guess = the_guess_parts.1;
-        //println!("The guess: {}", guess);
-        let the_player_parts = the_player.split_once("=").unwrap();
-        let player = the_player_parts.1;
-        //println!("The player: {}", player);
-
-        // Wrong word size
-        let word_size: usize = guess.len() as usize;
-        if word_size != 5 {
-            return response;
-        }
-
-        // Check if this word was already a match
-        let matches_index = state.matches.borrow().iter().position(|x| x == guess);
-        if matches_index.is_some() {
-            response = vec![b'r'; 5];
-            return response;
-        }
-
-        // Check letters
-        for letter_index in 0..word_size {
-            let letter_char = guess.as_bytes()[letter_index] as char;
-            let found_char = state.letters.borrow()[letter_index]
-                .chars()
-                .any(|ch| ch == letter_char);
-            if found_char {
-                response[letter_index] = b'b';
-            } else {
-                state.letters.borrow_mut()[letter_index].push_str(&letter_char.to_string());
+    if let Ok(url) = url {
+        let query: HashMap<String, String> = url.query_pairs().into_owned().collect();
+        if let (Some(guess), Some(player)) = (query.get("guess"), query.get("player")) {
+            // Wrong word size
+            let word_size: usize = guess.len() as usize;
+            if word_size != 5 {
+                return response;
             }
-        }
 
-        // Check if this word is a new match
-        let guesses_index = state.guesses.borrow().iter().position(|x| x == guess);
-        if guesses_index.is_some() {
-            // Check if it matches a previous guess from the player
-            let winner = &state.players.borrow()[guesses_index.unwrap()];
-            if winner == player {
+            // Check if this word was already a match
+            let matches_index = state.matches.borrow().iter().position(|x| x == guess);
+            if matches_index.is_some() {
                 response = vec![b'r'; 5];
                 return response;
             }
 
-            // Push word to matches
-            state.matches.borrow_mut().push(guess.to_string());
-            response = vec![b'p'; 5];
-            //println!("New match: {}", guess.to_string());
+            // Check letters
+            for letter_index in 0..word_size {
+                let letter_char = guess.as_bytes()[letter_index] as char;
+                let found_char = state.letters.borrow()[letter_index]
+                    .chars()
+                    .any(|ch| ch == letter_char);
+                if found_char {
+                    response[letter_index] = b'b';
+                } else {
+                    state.letters.borrow_mut()[letter_index].push_str(&letter_char.to_string());
+                }
+            }
 
-            // Push winners
-            state.winners.borrow_mut().push(player.to_string());
-            state.winners.borrow_mut().push(winner.to_string());
-            //println!("Winners: {}, {}", player.to_string(), winner.to_string());
-        } else {
-            // Push new word to guesses
-            state.guesses.borrow_mut().push(guess.to_string());
-            state.players.borrow_mut().push(player.to_string());
-            //println!("New word: {}", guess.to_string());
+            // Check if this word is a new match
+            let guesses_index = state.guesses.borrow().iter().position(|x| x == guess);
+            if guesses_index.is_some() {
+                // Check if it matches a previous guess from the player
+                let winner = &state.players.borrow()[guesses_index.unwrap()];
+                if winner == player {
+                    response = vec![b'r'; 5];
+                    return response;
+                }
+
+                // Push word to matches
+                state.matches.borrow_mut().push(guess.to_string());
+                response = vec![b'p'; 5];
+                //println!("New match: {}", guess.to_string());
+
+                // Push winners
+                state.winners.borrow_mut().push(player.to_string());
+                state.winners.borrow_mut().push(winner.to_string());
+                //println!("Winners: {}, {}", player.to_string(), winner.to_string());
+            } else {
+                // Push new word to guesses
+                state.guesses.borrow_mut().push(guess.to_string());
+                state.players.borrow_mut().push(player.to_string());
+                //println!("New word: {}", guess.to_string());
+            }
         }
     }
 
@@ -230,12 +233,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "/single" => mini_http::Response::builder()
                 .status(200)
                 .header("Content-Type", "text/plain")
-                .body(check_single(req.uri().query(), state.clone()))
+                .body(check_single(&req, state.clone()))
                 .unwrap(),
             "/multi" => mini_http::Response::builder()
                 .status(200)
                 .header("Content-Type", "text/plain")
-                .body(check_multi(req.uri().query(), state.clone()))
+                .body(check_multi(&req, state.clone()))
                 .unwrap(),
             "/winners" => mini_http::Response::builder()
                 .status(200)

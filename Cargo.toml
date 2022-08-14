@@ -9,3 +9,4 @@ mini_http = {git = "https://github.com/haraldh/mini_http"}
 httparse = "1"
 http = "0.1"
 rand = "0.8.5"
+url = "2.2.2"
